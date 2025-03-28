@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -6,6 +7,8 @@
 #include <sys/stat.h>
 #include <stdbool.h>
 #include <string.h>
+#include <semaphore.h>
+
 
 #define MAX_PLAYERS 9
 #define SHM_STATE "/game_state"
@@ -30,7 +33,17 @@ typedef struct {
     int board[];
 } game_state_t;
 
+typedef struct { //no lo copie
+    sem_t sem_view_ready;
+    sem_t sem_view_done;
+    sem_t sem_master_mutex;
+    sem_t sem_game_mutex;
+    sem_t sem_reader_mutex;
+    unsigned int readers;
+} sync_t;
+
 game_state_t* state;
+sync_t* sync; 
 
 int main(int argc, char* argv[]){
     if(argc < 3) {
