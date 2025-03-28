@@ -6,7 +6,10 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <semaphore.h>
+#include <time.h>
 
+#define MOVEMENTS 8
 #define MAX_PLAYERS 9
 #define SHM_STATE "/game_state"
 #define SHM_SYNC "/game_sync"
@@ -30,13 +33,73 @@ typedef struct {
     int board[];
 } game_state_t;
 
+typedef struct { 
+    sem_t sem_view_ready;
+    sem_t sem_view_done;
+    sem_t sem_master_mutex;
+    sem_t sem_game_mutex;
+    sem_t sem_reader_mutex;
+    unsigned int readers;
+} sync_t;
+
 
 game_state_t* state;
+sync_t* sync;
 int my_index = -1;
 int width, height;
 
 int dx[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
 int dy[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
+
+void begin_read(){
+    sem_wait(&sync->sem_reader_mutex);
+    sync->readers++;
+    if (sync->readers == 1)
+        sem_wait(&sync->sem_game_mutex);
+    sem_post(&sync->sem_reader_mutex);
+}
+
+void end_read() {
+    sem_wait(&sync->sem_reader_mutex);
+    sync->readers--;
+    if (sync->readers == 0)
+        sem_post(&sync->sem_game_mutex);
+    sem_post(&sync->sem_reader_mutex);
+}
+
+bool can_move_to(int x, int y) {
+    if (x < 0 || x >= width || y < 0 || y >= height) return false;
+    int cell = state->board[y * width + x];
+    return cell > 0; 
+}
+
+void player_loop(){
+    while (!state->finished) {
+        begin_read();
+        player_t* me = &state->players[my_index];
+
+        if(me->blocked){
+            end_read();
+            break;
+        }
+
+        for (int dir = 0; dir < MOVEMENTS; dir++){
+            int x = me->x + dx[dir];
+            int y = me->y + dy[dir];
+            if (can_move_to(x,y)) {
+                unsigned char move = dir;
+                write(STDOUT_FILENO, &move, 1);
+                end_read();
+                usleep(100000);
+                goto next;
+            }
+        }
+        end_read();
+        usleep(200000); //si no hay mov invalido espera
+    next:
+        ;
+    }
+}
 
 int main(int argc, char* argv[]){
     if (argc < 3) {
@@ -67,6 +130,8 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "No se ha encontrado el jugador");
         return 1;        
     }
+
+    player_loop();
 
     return 0;
 }
