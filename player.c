@@ -81,8 +81,13 @@ void player_loop(){
 
         if(me->blocked){
             end_read();
+            sem_wait(&sync->sem_game_mutex);
+            me->blocked = true;
+            sem_post(&sync->sem_game_mutex);
             break;
         }
+
+        bool found_move = false;
 
         for (int dir = 0; dir < MOVEMENTS; dir++){
             int x = me->x + dx[dir];
@@ -92,13 +97,22 @@ void player_loop(){
                 write(STDOUT_FILENO, &move, 1);
                 end_read();
                 usleep(100000);
-                goto next;
+                found_move = true;
+                break;
             }
         }
+
         end_read();
-        usleep(200000); //si no hay mov invalido espera
-    next:
-        ;
+
+        if (!found_move) {
+            sem_wait(&sync->sem_game_mutex);
+            me->blocked = true;
+            sem_post(&sync->sem_game_mutex);
+            break;
+        }
+
+      
+        usleep(200000); //si no hay mov invalido esperar
     }
 }
 
