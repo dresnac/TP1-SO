@@ -33,7 +33,7 @@ typedef struct {
     int board[];
 } game_state_t;
 
-typedef struct { //no lo copie
+typedef struct { 
     sem_t sem_view_ready;
     sem_t sem_view_done;
     sem_t sem_master_mutex;
@@ -44,6 +44,56 @@ typedef struct { //no lo copie
 
 game_state_t* state;
 sync_t* sync; 
+void print_board() {
+    printf("\033[H\033[J"); // Clear screen
+    printf("Tablero (%dx%d):\n", state->width, state->height);
+
+    for (int y = 0; y < state->height; y++) {
+        for (int x = 0; x < state->width; x++) {
+            int cell = state->board[y * state->width + x];
+            if (cell > 0)
+                printf(" %d ", cell);
+            else if (cell <= 0)
+                printf(" P%d", -cell);
+            else
+                printf(" 0 ");
+        }
+        printf("\n");
+    }
+
+    printf("\nJugadores:\n");
+    for (unsigned int i = 0; i < state->num_players; i++) {
+        player_t* p = &state->players[i];
+        printf("P%d (%s): score=%u, valid=%u, invalid=%u, pos=(%d,%d)%s\n",
+               i, p->name, p->score, p->valid_moves, p->invalid_moves,
+               p->x, p->y, p->blocked ? " [BLOCKED]" : "");
+    }
+}
+
+void start_view_loop() {
+    while (!state->finished) {
+        sem_wait(&sync->sem_view_ready); // Esperar a que el master indique imprimir
+
+        sem_wait(&sync->sem_reader_mutex);
+        sync->readers++;
+        if (sync->readers == 1)
+            sem_wait(&sync->sem_game_mutex);
+        sem_post(&sync->sem_reader_mutex);
+
+        print_board();
+
+        sem_wait(&sync->sem_reader_mutex);
+        sync->readers--;
+        if (sync->readers == 0)
+            sem_post(&sync->sem_game_mutex);
+        sem_post(&sync->sem_reader_mutex);
+
+        sem_post(&sync->sem_view_done); // Avisar al master que termine
+        usleep(100); // Pequeña espera para evitar flicker
+    }
+    print_board();
+    printf("\nJuego terminado.\n");
+}
 
 int main(int argc, char* argv[]){
     if(argc < 3) {
@@ -59,6 +109,8 @@ int main(int argc, char* argv[]){
 
     int fd_sync = shm_open(SHM_SYNC, O_RDWR, 0);
     sync = mmap(NULL, sizeof(sync_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd_sync, 0);
+
+    start_view_loop();
 
     return 0;
 }
