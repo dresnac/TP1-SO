@@ -200,6 +200,7 @@ void game_loop(int num_players) {
 int main(int argc, char* argv[]) {
     int width = 10, height = 10, seed = time(NULL);
     char* view_bin = NULL;
+    int view_flag = 0;
     char* player_bins[MAX_PLAYERS];
     int num_players = 0;
 
@@ -215,7 +216,10 @@ int main(int argc, char* argv[]) {
         } else if (!strcmp(argv[i], "-s")) {
             if (i + 1 < argc) seed = atoi(argv[++i]);
         } else if (!strcmp(argv[i], "-v")) {
-            if (i + 1 < argc) view_bin = argv[++i];
+            if (i + 1 < argc){
+                view_bin = argv[++i];
+                view_flag = 1;
+            } 
         } else if (!strcmp(argv[i], "-p")) {
             while (i + 1 < argc && num_players < MAX_PLAYERS && argv[i + 1][0] != '-') {
                 player_bins[num_players++] = argv[++i];
@@ -234,15 +238,15 @@ int main(int argc, char* argv[]) {
     distribute_players(width, height, num_players);
 
     pipes = malloc(sizeof(int[2]) * num_players);
-    children = malloc(sizeof(pid_t) * (num_players + (view_bin ? 1 : 0)));
+    children = malloc(sizeof(pid_t) * (num_players + view_flag));
 
-    if (view_bin) {
+    if (view_flag) {
         pid_t pid = fork();
         if (pid == 0) {
             char w_str[8], h_str[8];
             sprintf(w_str, "%d", width);
             sprintf(h_str, "%d", height);
-            execl(view_bin, view_bin, w_str, h_str, NULL);
+            execl(view_bin, view_bin, w_str, h_str, NULL);  //checkear si va view_bin o view_flag
             perror("execl view"); exit(1);
         }
         children[num_players] = pid;
@@ -268,7 +272,7 @@ int main(int argc, char* argv[]) {
     notify_view();
     game_loop(num_players);
 
-    for (int i = 0; i < num_players + (view_bin ? 1 : 0); i++) {
+    for (int i = 0; i < num_players + view_flag; i++) {
         int status;
         waitpid(children[i], &status, 0);
     }
