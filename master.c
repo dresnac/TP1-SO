@@ -21,6 +21,7 @@
 #define SHM_SYNC "/game_sync"
 #define PIPE_READ 0
 #define PIPE_WRITE 1
+#define PARAMS_ERROR 2
 
 // === Estructuras de datos ===
 typedef struct {
@@ -59,6 +60,7 @@ int (*pipes)[2];
 pid_t* children;
 int delay = 200;
 int timeout = 10;
+int view_flag = 0;
 
 int dx[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
 int dy[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
@@ -71,6 +73,36 @@ void cleanup() {
     shm_unlink(SHM_SYNC);
     free(pipes);
     free(children);
+}
+
+void check_params(int width, int height, int num_of_players){
+    int error = 0;
+    if(width < 10){
+        fprintf(stderr, "El ancho del tablero debe ser un entero mayor o igual a 10.\n");
+        error = 1;
+    }
+    if(height < 10){
+        fprintf(stderr, "El alto del tablero debe ser un entero mayor o igual a 10.\n");
+        error = 1;
+    }
+    if(timeout <= 0){
+        fprintf(stderr, "El tiempo de timeout debe ser mayor a 0 segundos\n");
+        error = 1;
+    }
+    if((delay/1000) < 0 || (delay/1000) > timeout){
+        fprintf(stderr, "El tiempo de delay debe ser positivo y menor que el tiempo de timeout\n");
+        error = 1;
+    }
+    if(num_of_players > 9){
+        fprintf(stderr, "La cantidad de jugadores máxima es 9.\n");
+        error = 1;
+    }
+
+
+    if(error){
+        exit(PARAMS_ERROR);
+    }
+
 }
 
 void init_shared_memory(int width, int height) {
@@ -96,9 +128,9 @@ void distribute_players(int width, int height, int num_players) {
         state->players[i].x = (i * 2) % width;
         state->players[i].y = (i * 2) / width;
         state->board[state->players[i].y * width + state->players[i].x] = -i;
-        // state->players[i].score = 0;
-        // state->players[i].invalid_moves = 0;
-        // state->players[i].valid_moves = 0;
+        state->players[i].score = 0;
+        state->players[i].invalid_moves = 0;
+        state->players[i].valid_moves = 0;
     }
 }
 
@@ -116,8 +148,10 @@ bool is_valid_move(int x, int y) {
 }
 
 void notify_view() {
-    sem_post(&sync->sem_view_ready);
-    sem_wait(&sync->sem_view_done);
+    if(view_flag){
+        sem_post(&sync->sem_view_ready);
+        sem_wait(&sync->sem_view_done);
+    }
 }
 
 void game_loop(int num_players) {
@@ -144,7 +178,7 @@ void game_loop(int num_players) {
         if (ready == 0) {
             state->finished = true;
             notify_view();
-            break;
+            break;  
         }
 
         for (int i = 0; i < num_players; i++) {
@@ -200,7 +234,7 @@ void game_loop(int num_players) {
 int main(int argc, char* argv[]) {
     int width = 10, height = 10, seed = time(NULL);
     char* view_bin = NULL;
-    int view_flag = 0;
+    view_flag = 0;
     char* player_bins[MAX_PLAYERS];
     int num_players = 0;
 
@@ -226,6 +260,20 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+
+    check_params(width, height, num_players);//normalizar: algunos params son globales y otros locales, deberían ser todos lo mismo
+
+    printf("width: %d\n", width);
+    printf("height: %d\n", height);
+    printf("delay: %d\n", delay);
+    printf("timeout: %d\n", timeout);
+    printf("seed: %d\n", seed);
+    printf("view: %s\n", view_flag? view_bin:"-");
+    printf("num_players: %d\n", num_players);
+    for(int i=0; i < num_players; i++){
+        printf("\t%s\n", player_bins[i]);
+    }
+    sleep(2);
     
 
     init_shared_memory(width, height);
