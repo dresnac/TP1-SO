@@ -11,11 +11,15 @@
 #include <stdbool.h>
 #include <string.h>
 #include <semaphore.h>
+#include <sys/time.h>
+#include <time.h>
 
-// #include <unistd.h>     // para usleep()
-#include <sys/time.h>   // para gettimeofday()
-
-
+void dormir_microsegundos(int micros) {
+    struct timespec req;
+    req.tv_sec = micros / 1000000;
+    req.tv_nsec = (micros % 1000000) * 1000;
+    nanosleep(&req, NULL);
+}
 
 #define MAX_PLAYERS 9
 #define SHM_STATE "/game_state"
@@ -94,7 +98,7 @@ void start_view_loop() {
         sem_post(&sync->sem_reader_mutex);
 
         sem_post(&sync->sem_view_done); // Avisar al master que termine
-        usleep(100); // Pequeña espera para evitar flicker
+        dormir_microsegundos(100); // Pequeña espera para evitar flicker
     }
     print_board();
     printf("\nJuego terminado.\n");

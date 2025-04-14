@@ -12,10 +12,15 @@
 #include <string.h>
 #include <semaphore.h>
 #include <time.h>
+#include <sys/time.h>
+#include <time.h>
 
-// #include <unistd.h>     // para usleep()
-#include <sys/time.h>   // para gettimeofday()
-
+void dormir_microsegundos(int micros) {
+    struct timespec req;
+    req.tv_sec = micros / 1000000;
+    req.tv_nsec = (micros % 1000000) * 1000;
+    nanosleep(&req, NULL);
+}
 
 #define MOVEMENTS 8
 #define MAX_PLAYERS 9
@@ -102,7 +107,7 @@ void player_loop(){
                 unsigned char move = dir;
                 write(STDOUT_FILENO, &move, 1);
                 end_read();
-                usleep(100000);
+                dormir_microsegundos(100000);
                 found_move = true;
                 break;
             }
@@ -118,7 +123,7 @@ void player_loop(){
         }
 
       
-        usleep(200000); //si no hay mov invalido esperar
+        dormir_microsegundos(200000); //si no hay mov invalido esperar
     }
 }
 

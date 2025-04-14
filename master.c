@@ -18,10 +18,15 @@
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <errno.h>
+#include <sys/time.h>
+#include <time.h>
 
-// #include <unistd.h>     // para usleep()
-#include <sys/time.h>   // para gettimeofday()
-
+void dormir_microsegundos(int micros) {
+    struct timespec req;
+    req.tv_sec = micros / 1000000;
+    req.tv_nsec = (micros % 1000000) * 1000;
+    nanosleep(&req, NULL);
+}
 
 #define MAX_PLAYERS 9
 #define SHM_STATE "/game_state"
@@ -215,7 +220,7 @@ void game_loop(int num_players) {
                 state->players[i].y = ny;
 
                 notify_view();
-                usleep(delay * 1000);
+                dormir_microsegundos(delay * 1000);
 
                 gettimeofday(&last_move_time, NULL);
             }
@@ -293,7 +298,15 @@ int main(int argc, char* argv[]) {
     distribute_players(width, height, num_players);
 
     pipes = malloc(sizeof(int[2]) * num_players);
+    if (pipes == NULL) {
+        perror("malloc failed for pipes");
+        exit(EXIT_FAILURE);
+    }
     children = malloc(sizeof(pid_t) * (num_players + view_flag));
+    if (children == NULL) {
+        perror("malloc failed for children");
+        exit(EXIT_FAILURE);
+    }
 
     if (view_flag) {
         pid_t pid = fork();
