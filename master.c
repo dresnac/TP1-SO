@@ -34,6 +34,8 @@ void dormir_microsegundos(int micros) {
 #define PIPE_READ 0
 #define PIPE_WRITE 1
 #define PARAMS_ERROR 2
+#define X 1
+#define Y 0
 
 // === Estructuras de datos ===
 typedef struct {
@@ -136,9 +138,20 @@ void init_shared_memory(int width, int height) {
 }
 
 void distribute_players(int width, int height, int num_players) {
+
+    int positions[MAX_PLAYERS][2] = {
+        {0, 0}, {0, width - 1}, {height - 1, 0}, {height - 1, width - 1}, // Esquinas
+        {height / 2, width / 2}, // Centro
+        {height / 4, width / 4}, {height / 4, width - width / 4}, // Mitad superior
+        {height - height / 4, width / 4}, {height - height / 4, width - width / 4} // Mitad inferior
+    };
+
     for (int i = 0; i < num_players; i++) {
-        state->players[i].x = (i * 2) % width;
-        state->players[i].y = (i * 2) / width;
+        // state->players[i].x = (i * 2) % width;
+        // state->players[i].y = (i * 2) / width;
+
+        state->players[i].x = positions[i][X];
+        state->players[i].y = positions[i][Y];
         state->board[state->players[i].y * width + state->players[i].x] = -i;
         state->players[i].score = 0;
         state->players[i].invalid_moves = 0;
@@ -171,7 +184,6 @@ void game_loop(int num_players) {
     struct timeval last_move_time;
     gettimeofday(&last_move_time, NULL);
 
-    int current_player = 0;
 
     while (!state->finished) {
         FD_ZERO(&readfds);

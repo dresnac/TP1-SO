@@ -71,9 +71,9 @@ void print_board() {
     }
 
     printf("\nJugadores:\n");
-    for (int i = 0; i < state->num_players; i++) {
+    for (unsigned int i = 0; i < state->num_players; i++) {
         player_t* p = &state->players[i];
-        printf("P%d (%s): score=%u, valid=%u, invalid=%u, pos=(%d,%d)%s\n",
+        printf("P%u (%s): score=%u, valid=%u, invalid=%u, pos=(%d,%d)%s\n",
                i, p->name, p->score, p->valid_moves, p->invalid_moves,
                p->x, p->y, p->blocked ? " [BLOCKED]" : "");
     }

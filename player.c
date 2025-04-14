@@ -144,10 +144,10 @@ int main(int argc, char* argv[]){
     sync = mmap(NULL, sizeof(sync_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd_sync, 0);
 
     pid_t pid = getpid();
-    for (int i = 0; i < state->num_players; i++) {
+    for (unsigned int i = 0; i < state->num_players; i++) {
         if (state->players[i].pid == pid) {
             my_index = i;
-            snprintf(state->players[i].name, 16, "J%d", i);
+            snprintf(state->players[i].name, 16, "J%u", i);
             break;
         }
     }
