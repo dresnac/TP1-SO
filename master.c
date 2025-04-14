@@ -147,8 +147,6 @@ void distribute_players(int width, int height, int num_players) {
     };
 
     for (int i = 0; i < num_players; i++) {
-        // state->players[i].x = (i * 2) % width;
-        // state->players[i].y = (i * 2) / width;
 
         state->players[i].x = positions[i][X];
         state->players[i].y = positions[i][Y];
@@ -238,7 +236,7 @@ void game_loop(int num_players) {
             }
         }
 
-        // Check for game end (no players can move)
+        // Chequea si algun jugador puede moverse
         bool all_blocked = true;
         for (int i = 0; i < num_players; i++) {
             if (!state->players[i].blocked) {
@@ -252,7 +250,7 @@ void game_loop(int num_players) {
             break;
         }
     }
-    //notify_view();
+    
 }
 
 int main(int argc, char* argv[]) {
@@ -285,7 +283,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    check_params(width, height, num_players);//normalizar: algunos params son globales y otros locales, deberían ser todos lo mismo
+    check_params(width, height, num_players);
 
     printf("width: %d\n", width);
     printf("height: %d\n", height);
@@ -326,7 +324,7 @@ int main(int argc, char* argv[]) {
             char w_str[8], h_str[8];
             sprintf(w_str, "%d", width);
             sprintf(h_str, "%d", height);
-            execl(view_bin, view_bin, w_str, h_str, NULL);  //checkear si va view_bin o view_flag
+            execl(view_bin, view_bin, w_str, h_str, NULL);
             perror("execl view"); exit(1);
         }
         children[num_players] = pid;
