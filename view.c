@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +11,10 @@
 #include <stdbool.h>
 #include <string.h>
 #include <semaphore.h>
+
+// #include <unistd.h>     // para usleep()
+#include <sys/time.h>   // para gettimeofday()
+
 
 
 #define MAX_PLAYERS 9
@@ -53,16 +60,14 @@ void print_board() {
             int cell = state->board[y * state->width + x];
             if (cell > 0)
                 printf(" %d ", cell);
-            else if (cell <= 0)
-                printf(" P%d", -cell);
             else
-                printf(" 0 ");
+                printf(" P%d", -cell);
         }
         printf("\n");
     }
 
     printf("\nJugadores:\n");
-    for (unsigned int i = 0; i < state->num_players; i++) {
+    for (int i = 0; i < state->num_players; i++) {
         player_t* p = &state->players[i];
         printf("P%d (%s): score=%u, valid=%u, invalid=%u, pos=(%d,%d)%s\n",
                i, p->name, p->score, p->valid_moves, p->invalid_moves,

@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +12,10 @@
 #include <string.h>
 #include <semaphore.h>
 #include <time.h>
+
+// #include <unistd.h>     // para usleep()
+#include <sys/time.h>   // para gettimeofday()
+
 
 #define MOVEMENTS 8
 #define MAX_PLAYERS 9
@@ -82,7 +89,6 @@ void player_loop(){
         if(me->blocked){
             end_read();
             sem_wait(&sync->sem_game_mutex);
-            me->blocked = true;
             sem_post(&sync->sem_game_mutex);
             break;
         }

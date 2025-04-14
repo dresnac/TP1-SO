@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+
 // master.c
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
@@ -15,6 +18,10 @@
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <errno.h>
+
+// #include <unistd.h>     // para usleep()
+#include <sys/time.h>   // para gettimeofday()
+
 
 #define MAX_PLAYERS 9
 #define SHM_STATE "/game_state"
@@ -315,6 +322,7 @@ int main(int argc, char* argv[]) {
         
         close(pipes[i][PIPE_WRITE]);
         state->players[i].pid = pid;
+        children[i] = pid;
     }
 
     notify_view();
