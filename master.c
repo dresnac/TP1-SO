@@ -334,8 +334,15 @@ int main(int argc, char* argv[]) {
         pipe(pipes[i]);
         pid_t pid = fork();
         if (pid == 0) {
+            for (int j = 0; j < num_players; j++) {
+                if (j != i) {
+                    close(pipes[j][PIPE_READ]);
+                    close(pipes[j][PIPE_WRITE]);
+                }
+            }
             dup2(pipes[i][PIPE_WRITE], STDOUT_FILENO);
             close(pipes[i][PIPE_READ]);
+            close(pipes[i][PIPE_WRITE]);
             char w_str[8], h_str[8];
             sprintf(w_str, "%d", width);
             sprintf(h_str, "%d", height);
@@ -355,6 +362,7 @@ int main(int argc, char* argv[]) {
         int status;
         waitpid(children[i], &status, 0);
     }
+
 
     for (int i = 0; i < num_players; i++) {
         printf("Jugador %d (%s): Puntaje = %u\n", i, state->players[i].name, state->players[i].score);
